@@ -17,6 +17,7 @@ def get_args():
     parser.add_argument('-o', '--option', required=True, action='store', help='Option')
     parser.add_argument('-i', '--input', required=False, action='store', help='Input list')
     my_args = parser.parse_args()
+    print(my_args)
     return my_args
 
 
@@ -73,6 +74,48 @@ def ratelimit():
 	time.sleep(120)
 	return
 
+def get_follower_list(api, args):
+    username=args.query
+    limit=args.limit
+    followers = api.followers_ids(username)
+    print(len(followers))
+    
+    if limit is not None and len(followers) > int(args.limit):
+        followers = followers[int(args.limit)]
+    for id in followers:
+        print(id)
+        try:
+            time.sleep(delay_)
+            name = api.get_user(id).screen_name
+            api.create_friendship(id)
+            print ("Following %s people: " % name)
+        except:
+            print ("error in get_follower_list")
+            ratelimit()
+    print(followers)
+
+def generate_whitelist(api):
+    # People i already follow, and don't want to unfollow
+    followings = api.friends_ids()
+    print ("\nFOLLOWING\n")
+    counter = 0
+    followings_names=[]
+    f = open("./whitelist.txt", "a")
+    for j in followings:
+        try:
+            time.sleep(delay_)
+            screen_name = api.get_user(j).screen_name
+            followings_names.append(screen_name)
+            counter+=1
+            f.write(f"{screen_name}\n")
+            print (str(counter)+") "+screen_name)
+        except:
+            ratelimit()
+            screen_name = api.get_user(j).screen_name
+            followings_names.append(screen_name)
+            f.write(screen_name)
+            counter+=1
+            print (str(counter)+") "+screen_name)
 
 def report(api):
 	followers = api.followers_ids()
@@ -156,6 +199,12 @@ def main():
     # Different options
     args = get_args()
     option = args.option
+    if option == "generate_wl":
+        print("generate-wl")
+        generate_whitelist(api)
+    if option == "followers":
+        print("followers")
+        get_follower_list(api, args)
     if option == "follow":
         query = args.query
         geocode = args.geocode
